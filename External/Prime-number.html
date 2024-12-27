@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Document</title>
+</head>
+<body>
+    <script>
+function isPrime(num) {
+    if (num <= 1) return false; 
+    for (let i = 2; i <= Math.sqrt(num); i++) {
+        if (num % i === 0) {
+            return false; 
+        }
+    }
+    return true;
+}
+function displayPrimes() {
+    let primes = [];
+	    for (let i = 1; i <= 100; i++) {
+        if (isPrime(i)) {
+            primes.push(i);
+        }
+    }
+    return primes;
+}
+let userResponse = prompt("Do you want to display prime numbers from 1 to 100? (yes/no)");
+if (userResponse.toLowerCase() === "yes") {
+    let primes = displayPrimes();
+    alert(`Prime numbers from 1 to 100 are:\n${primes.join(", ")}`);
+} else {
+    alert("Operation cancelled.");
+}
+    </script>
+</body>
+</html>

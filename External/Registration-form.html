@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Registration Form</title>
+  <script>
+    function handleSubmit(event) {
+      event.preventDefault(); 
+      alert("Form submitted successfully!");
+      event.target.reset();
+    }
+  </script>
+</head>
+<body>
+  <h2>Registration Form</h2>
+  <form onsubmit="handleSubmit(event)">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" required><br><br>
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required><br><br>
+    <label for="email">E-mail ID:</label>
+    <input type="email" id="email" name="email" required><br><br>
+    <label for="phone">Phone Number:</label>
+    <input type="tel" id="phone" name="phone" pattern="[0-9]{10}" required><br><br>
+    <label>Sex:</label>
+    <input type="radio" id="male" name="sex" value="male">
+    <label for="male">Male</label>
+    <input type="radio" id="female" name="sex" value="female">
+    <label for="female">Female</label><br><br>
+    <label for="dob">Date of Birth:</label>
+    <select id="day" name="day" required>
+      <option value="" disabled selected>Day</option>
+      <script>
+        for (let i = 1; i <= 31; i++) {
+          document.write(`<option value="${i}">${i}</option>`);
+        }
+      </script>
+   
+	</select>
+    <select id="month" name="month" required>
+      <option value="" disabled selected>Month</option>
+      <script>
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        months.forEach((month, index) => {
+          document.write(`<option value="${index + 1}">${month}</option>`);
+        });
+      </script>
+    </select>
+    <select id="year" name="year" required>
+      <option value="" disabled selected>Year</option>
+      <script>
+        for (let year = 1900; year <= new Date().getFullYear(); year++) {
+          document.write(`<option value="${year}">${year}</option>`);
+        }
+      </script>
+    </select><br><br>
+    <label>Languages Known:</label><br>
+    <input type="checkbox" id="english" name="languages" value="English">
+    <label for="english">English</label>
+    <input type="checkbox" id="telugu" name="languages" value="Telugu">
+    <label for="telugu">Telugu</label>
+    <input type="checkbox" id="hindi" name="languages" value="Hindi">
+    <label for="hindi">Hindi</label>
+    <input type="checkbox" id="tamil" name="languages" value="Tamil">
+    <label for="tamil">Tamil</label><br><br>
+    <label for="address">Address:</label><br>
+    <textarea id="address" name="address" rows="4" cols="50" required></textarea><br><br>
+    <button type="submit">Register</button>
+  </form>
+</body>
+</html>

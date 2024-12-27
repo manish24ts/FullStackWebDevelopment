@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Document</title>
+</head>
+<body>
+    <script>
+function generateFibonacci(n) {
+    if (n <= 0) return "Please enter a positive integer.";
+    let fibonacciSeries = [], a = 0, b = 1;
+    for (let i = 0; i < n; i++) {
+        fibonacciSeries.push(a);
+        let next = a + b;
+        a = b;
+        b = next;
+    }	    return fibonacciSeries;
+}
+let terms = parseInt(prompt("Enter the number of terms for the Fibonacci series:"));
+if (!isNaN(terms)) {
+    let series = generateFibonacci(terms);
+    alert(`The first ${terms} terms of the Fibonacci series are:\n${series.join(", ")}`);
+} else {
+    alert("Please enter a valid number.");
+}
+   </script>
+</body>
+</html>

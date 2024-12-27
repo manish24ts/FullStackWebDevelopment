@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Contact Us Form</title>
+</head>
+<body>
+  <h2>Contact Us</h2>
+  <form id="contactForm" onsubmit="return validateForm()">
+    <div>
+      <label for="name">Name:</label>
+      <input type="text" id="name" name="name" required>
+      <span id="nameError" style="color: red;"></span>
+    </div>
+    <br>
+    <div>
+      <label for="email">Email:</label>
+      <input type="text" id="email" name="email" required>
+      <span id="emailError" style="color: red;"></span>
+    </div>
+    <br>
+    <div>
+      <label for="phone">Phone Number:</label>
+      <input type="text" id="phone" name="phone" required>
+      <span id="phoneError" style="color: red;"></span>
+    </div>
+    <br>
+    <div>
+      <label for="message">Message:</label>
+      <textarea id="message" name="message" required></textarea>
+      <span id="messageError" style="color: red;"></span>
+    </div>
+    <br>
+    <button type="submit">Submit</button>
+  </form>
+  <script>
+    	
+function validateForm() {
+  let name = document.getElementById("name").value;
+  let email = document.getElementById("email").value;
+  let phone = document.getElementById("phone").value;
+  let message = document.getElementById("message").value;
+  let nameError = document.getElementById("nameError");
+  let emailError = document.getElementById("emailError");
+  let phoneError = document.getElementById("phoneError");
+  let messageError = document.getElementById("messageError");
+
+  let valid = true;
+  nameError.textContent = "";
+  emailError.textContent = "";
+  phoneError.textContent = "";
+  messageError.textContent = "";
+  let namePattern = /^[A-Za-z]{3,}$/;
+  if (!name.match(namePattern)) {
+    nameError.textContent = "Name must contain only alphabetic characters and be at least 3 characters long.";
+    valid = false;
+  }
+  let emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+  if (!email.match(emailPattern)) {
+    emailError.textContent = "Please enter a valid email address.";
+    valid = false;
+  }
+  let phonePattern = /^[0-9]{10}$/;
+  if (!phone.match(phonePattern)) {
+    phoneError.textContent = "Phone number must be exactly 10 digits long.";
+    valid = false;
+  }
+  if (message.length < 20) {
+    messageError.textContent = "Message must be at least 20 characters long.";
+    valid = false;
+  }
+  return valid;
+}
+
+  </script>
+</body>
+</html>

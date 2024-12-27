@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ravi Clothing Store</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 20px 0;
+            font-size: 24px;
+        }
+        nav {
+            margin: 20px 0;
+        }
+        nav button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: white;
+            transition: background-color 0.3s;
+        }
+        nav button:hover {
+            background-color: #ddd;
+        }
+        .category {
+            display: none;
+        }
+        .category.active {
+            display: block;
+            margin-top: 20px;
+        }
+        .category div {
+            display: inline-block;
+            margin: 10px;
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 150px;
+        }
+    </style>	</head>
+<body>
+    <header>Ravi Clothing Store</header>
+    <nav>
+        <button onclick="showCategory('kids')">Kids Fashion</button>
+        <button onclick="showCategory('men')">Men Fashion</button>
+        <button onclick="showCategory('women')">Women Fashion</button>
+    </nav>
+    <div id="kids" class="category">
+        <h2>Kids Fashion</h2>
+        <div>T-Shirts</div>
+        <div>Frocks</div>
+        <div>Shorts</div>
+        <div>Sweaters</div>
+    </div>
+    <div id="men" class="category">
+        <h2>Men Fashion</h2>
+        <div>Formal Shirt</div>
+        <div>Casual Shirt</div>
+        <div>Trousers</div>
+        <div>Suits</div>
+    </div>
+    <div id="women" class="category">
+        <h2>Women Fashion</h2>
+        <div>Ethnic Wear</div>
+        <div>Casual Wear</div>
+        <div>Party Wear</div>
+        <div>Winter Wear</div>
+    </div>
+    <script>
+        function showCategory(categoryId) {
+            const categories = document.querySelectorAll('.category');
+            categories.forEach(category => category.classList.remove('active'));
+            document.getElementById(categoryId).classList.add('active');
+        }
+    </script>
+</body>
+</html>

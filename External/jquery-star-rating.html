@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Star Rating System</title>
+<style>
+    
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+    }
+    .star-rating {
+     display: inline-block;
+    }
+    .star {
+    font-size: 30px;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+    }	    .star:hover,
+.star.selected {
+color: gold;
+}
+.star:hover ~ .star {
+ color: #ccc;
+}
+#ratingValue {
+margin-top: 10px;
+font-size: 16px;
+text-align: center;
+}
+
+</style>
+</head>
+<body>
+<div class="star-rating">
+<span class="star" data-value="1">&#9733;</span>
+<span class="star" data-value="2">&#9733;</span>
+<span class="star" data-value="3">&#9733;</span>
+<span class="star" data-value="4">&#9733;</span>
+<span class="star" data-value="5">&#9733;</span>
+</div>
+<div id="ratingValue"></div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+    let selectedRating = 0;
+    $('.star').on('mouseover', function() {
+    let value = $(this).data('value');
+    highlightStars(value);
+     });
+    $('.star').on('mouseout', function() {
+    highlightStars(selectedRating);
+    });
+    $('.star').on('click', function() {
+        selectedRating = $(this).data('value');
+        highlightStars(selectedRating);
+        $('#ratingValue').text(`You rated: ${selectedRating} star(s)`);
+        });
+        function highlightStars(value) {
+        $('.star').each(function() {
+        let starValue = $(this).data('value');
+        if (starValue <= value) {
+        $(this).addClass('selected');
+        } 
+        else {
+        $(this).removeClass('selected');
+         }
+    });
+    }
+});
+
+</script>
+</body>
+</html>
