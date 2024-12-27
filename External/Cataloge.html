@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Catalogue Page</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            text-align: center;
+            padding: 10px;
+        }
+        .logo {
+            width: 100px;
+            height: auto;
+        }
+        .cover {
+            width: 100px;
+            height: auto;
+        }
+        .button {
+            padding: 5px 10px;
+            background-color: blue;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <table>
+        <tr>
+            <th>Logo</th>
+            <th>Web Site Name</th>
+            <th>Login</th>
+            <th>Registration</th>
+            <th>Catalogue</th>
+            <th>Cart</th>
+        </tr>
+        <tr>
+            <td rowspan="4">
+                <img class="logo" src="logo.png" alt="Logo">
+            </td>
+            <td>CSE</td>
+            <td><a href="#">Login</a></td>
+            <td>Book: XML Bible<br>Author: Winston<br>Publication: Wiley</td>
+            <td>$40.5</td>
+            <td><button class="button">Add to cart</button></td>
+        </tr>
+        <tr>
+            <td>ECE</td>
+            <td><a href="#">Login</a></td>
+            <td>Book: AI<br>Author: S. Russel<br>Publication: Princeton hall</td>
+            <td>$63</td>
+            <td><button class="button">Add to cart</button></td>
+        </tr>
+        <tr>
+            <td>EEE</td>
+            <td><a href="#">Login</a></td>
+            <td>Book: Java 2<br>Author: Watson<br>Publication: BPB publications</td>
+            <td>$35.5</td>
+            <td><button class="button">Add to cart</button></td>
+        </tr>
+        <tr>
+            <td>CIVIL</td>
+            <td><a href="#">Login</a></td>
+            <td>Book: HTML in 24 hours<br>Author: Sam Peter<br>Publication: Sam publication</td>
+            <td>$50</td>
+            <td><button class="button">Add to cart</button></td>
+        </tr>
+    </table>
+</body>
+</html>
