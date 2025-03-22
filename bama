@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { motion } from 'framer-motion';
@@ -8,53 +8,55 @@ const QRScannerPage = () => {
   const [isScanning, setIsScanning] = useState(true);
   const [registrationData, setRegistrationData] = useState(null);
   const [error, setError] = useState(null);
-  const scannerRef = useRef(null);
+  const [scanner, setScanner] = useState(null);
 
   useEffect(() => {
-    // Initialize the scanner only if we're in scanning mode
-    if (isScanning && !scannerRef.current) {
-      const scanner = new Html5QrcodeScanner('reader', {
+    // Initialize scanner only once
+    if (isScanning && !scanner) {
+      const qrScanner = new Html5QrcodeScanner('reader', {
         qrbox: {
           width: 250,
           height: 250
         },
         fps: 10,
         rememberLastUsedCamera: true,
+        showTorchButtonIfSupported: true,
       });
       
-      scanner.render(onScanSuccess, onScanFailure);
-      scannerRef.current = scanner;
+      qrScanner.render(onScanSuccess, onScanFailure);
+      setScanner(qrScanner);
     }
     
     // Cleanup function
     return () => {
-      if (scannerRef.current) {
+      if (scanner) {
         try {
-          scannerRef.current.clear();
+          scanner.clear();
         } catch (error) {
           console.error("Error clearing scanner:", error);
         }
       }
     };
-  }, [isScanning]);
+  }, [isScanning, scanner]);
 
   const onScanSuccess = (decodedText) => {
+    console.log("QR code scanned successfully:", decodedText);
+    
     try {
-      // Parse the QR data first to validate it's proper JSON
+      // Parse the QR data
       const parsedData = JSON.parse(decodedText);
       
-      // Only after successful parsing, update the state
-      setIsScanning(false);
+      // Update state with scan results
       setScanResult(decodedText);
       setRegistrationData(parsedData);
+      setIsScanning(false);
       
-      // Clear the scanner
-      if (scannerRef.current) {
+      // Stop the scanner
+      if (scanner) {
         try {
-          scannerRef.current.clear();
-          scannerRef.current = null;
+          scanner.pause();
         } catch (error) {
-          console.error("Error clearing scanner:", error);
+          console.error("Error pausing scanner:", error);
         }
       }
     } catch (err) {
@@ -64,28 +66,30 @@ const QRScannerPage = () => {
   };
 
   const onScanFailure = (error) => {
-    // Handle scan failure silently - we don't want to show an error for every failed frame
+    // Only log to console, don't show errors to user for failed scans
+    console.log("Scan failed:", error);
   };
 
   const resetScanner = () => {
+    // Reset state
     setScanResult(null);
     setRegistrationData(null);
     setError(null);
     
-    // Clear reference to allow re-initialization
-    if (scannerRef.current) {
+    // Clear the existing scanner
+    if (scanner) {
       try {
-        scannerRef.current.clear();
-        scannerRef.current = null;
+        scanner.clear();
+        setScanner(null);
       } catch (error) {
-        console.error("Error during scanner reset:", error);
+        console.error("Error clearing scanner:", error);
       }
     }
     
-    // Set scanning after a short delay to ensure DOM is ready
+    // Set scanning state after a short delay
     setTimeout(() => {
       setIsScanning(true);
-    }, 100);
+    }, 300);
   };
 
   // Format ticket type for display
