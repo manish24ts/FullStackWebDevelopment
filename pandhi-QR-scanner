@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Html5Qrcode } from 'html5-qrcode';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -11,23 +11,28 @@ const QRCodeApp = () => {
   const [ticketData, setTicketData] = useState(null);
   const [error, setError] = useState(null);
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
+  const [fileUploadMode, setFileUploadMode] = useState(false);
   
   // Form states
-  const [attendeeName, setAttendeeName] = useState('');
+  const [firstName, setFirstName] = useState('');
   const [eventName, setEventName] = useState('');
   const [ticketType, setTicketType] = useState('standard');
   const [eventDate, setEventDate] = useState('');
 
+  // Refs
+  const fileInputRef = useRef(null);
+  const html5QrCodeRef = useRef(null);
+
   // Generate QR code function
   const generateQRCode = () => {
-    if (!attendeeName || !eventName) {
-      setError("Attendee name and event name are required");
+    if (!firstName || !eventName) {
+      setError("First name and event name are required");
       return;
     }
 
     // Create the ticket data object
     const data = {
-      attendeeName,
+      firstName,
       eventName,
       ticketType,
       eventDate: eventDate || new Date().toISOString().split('T')[0]
@@ -43,6 +48,16 @@ const QRCodeApp = () => {
   // Switch to scanner mode
   const startScanning = () => {
     setScanMode(true);
+    setFileUploadMode(false);
+    setQrCodeUrl(null);
+    setScanResult(null);
+    setTicketData(null);
+  };
+
+  // Switch to file upload mode
+  const startFileUpload = () => {
+    setScanMode(true);
+    setFileUploadMode(true);
     setQrCodeUrl(null);
     setScanResult(null);
     setTicketData(null);
@@ -51,15 +66,78 @@ const QRCodeApp = () => {
   // Reset all
   const resetAll = () => {
     setScanMode(false);
+    setFileUploadMode(false);
     setQrCodeUrl(null);
     setScanResult(null);
     setTicketData(null);
     setError(null);
+    
+    // Clear the scanner if it exists
+    if (html5QrCodeRef.current) {
+      html5QrCodeRef.current.clear().catch(error => {
+        console.error("Failed to clear scanner:", error);
+      });
+    }
   };
 
-  // Scanner hook
+  // Process QR code result
+  const processQrCode = (decodedText) => {
+    console.log("QR Code scanned successfully:", decodedText);
+    
+    try {
+      // Parse the JSON data from the QR code
+      const data = JSON.parse(decodedText);
+      
+      // Validate that the required fields exist
+      if (!data.firstName && !data.eventName) {
+        throw new Error("Missing required ticket information");
+      }
+      
+      // Update state with the ticket data
+      setScanResult(decodedText);
+      setTicketData({
+        firstName: data.firstName || "Not provided",
+        eventName: data.eventName || "Not provided"
+      });
+      
+      // Clear the scanner if it exists
+      if (html5QrCodeRef.current) {
+        html5QrCodeRef.current.clear().catch(error => {
+          console.error("Failed to clear scanner:", error);
+        });
+      }
+    } catch (err) {
+      console.error("Error parsing QR code data:", err);
+      setError("Invalid QR code format. Please scan a valid ticket QR code.");
+    }
+  };
+
+  // Handle file upload for QR scanning
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    
+    if (!file) {
+      return;
+    }
+    
+    // Create HTML5 QR code instance if not exists
+    if (!html5QrCodeRef.current) {
+      html5QrCodeRef.current = new Html5Qrcode("file-reader");
+    }
+    
+    // Scan the QR code from the file
+    html5QrCodeRef.current.scanFile(file, true)
+      .then(decodedText => {
+        processQrCode(decodedText);
+      })
+      .catch(err => {
+        setError("Error scanning file: " + err);
+      });
+  };
+
+  // Scanner hook for webcam
   useEffect(() => {
-    if (scanMode && !scanResult) {
+    if (scanMode && !fileUploadMode && !scanResult) {
       // Create a new scanner instance with optimized settings for webcam scanning
       const html5QrcodeScanner = new Html5QrcodeScanner(
         "reader", 
@@ -72,33 +150,12 @@ const QRCodeApp = () => {
           showZoomSliderIfSupported: true,
         }
       );
+      
+      html5QrCodeRef.current = html5QrcodeScanner.getHtml5QrcodeInstance();
 
       // Define success callback
       const onScanSuccess = (decodedText) => {
-        console.log("QR Code scanned successfully:", decodedText);
-        
-        try {
-          // Parse the JSON data from the QR code
-          const data = JSON.parse(decodedText);
-          
-          // Validate that the minimum required fields exist
-          if (!data.attendeeName || !data.eventName) {
-            throw new Error("Missing required ticket information");
-          }
-          
-          // Update state with essential ticket data only
-          setScanResult(decodedText);
-          setTicketData({
-            attendeeName: data.attendeeName,
-            eventName: data.eventName
-          });
-          
-          // Stop the scanner after successful scan
-          html5QrcodeScanner.clear();
-        } catch (err) {
-          console.error("Error parsing QR code data:", err);
-          setError("Invalid QR code format. Please scan a valid ticket QR code.");
-        }
+        processQrCode(decodedText);
       };
 
       // Define failure callback
@@ -118,7 +175,7 @@ const QRCodeApp = () => {
         });
       };
     }
-  }, [scanMode, scanResult]); // Only re-run when scanMode or scanResult changes
+  }, [scanMode, fileUploadMode, scanResult]); // Only re-run when these variables change
 
   return (
     <div className="container py-5">
@@ -154,14 +211,14 @@ const QRCodeApp = () => {
               <h4 className="mb-3">Generate Ticket QR Code</h4>
               <div className="row g-3">
                 <div className="col-md-6">
-                  <label htmlFor="attendeeName" className="form-label">Attendee Name</label>
+                  <label htmlFor="firstName" className="form-label">First Name</label>
                   <input 
                     type="text" 
                     className="form-control" 
-                    id="attendeeName"
-                    value={attendeeName}
-                    onChange={(e) => setAttendeeName(e.target.value)}
-                    placeholder="Enter attendee name"
+                    id="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Enter first name"
                     required
                   />
                 </div>
@@ -222,7 +279,7 @@ const QRCodeApp = () => {
               <h4 className="mb-3">Your Ticket QR Code</h4>
               <div className="card mx-auto mb-4" style={{ maxWidth: "300px" }}>
                 <div className="card-body">
-                  <h5 className="card-title">{attendeeName}</h5>
+                  <h5 className="card-title">{firstName}</h5>
                   <h6 className="card-subtitle mb-2 text-muted">{eventName}</h6>
                   <div className="my-3">
                     <img 
@@ -238,13 +295,16 @@ const QRCodeApp = () => {
                   Create Another Ticket
                 </button>
                 <button className="btn btn-primary" onClick={startScanning}>
-                  Scan a Ticket
+                  Scan with Webcam
+                </button>
+                <button className="btn btn-info" onClick={startFileUpload}>
+                  Upload QR Image
                 </button>
               </div>
             </motion.div>
           )}
           
-          {scanMode && !scanResult && (
+          {scanMode && !scanResult && !fileUploadMode && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -264,9 +324,50 @@ const QRCodeApp = () => {
                 ></div>
               </div>
               <p className="text-muted">Please allow camera access when prompted</p>
-              <button className="btn btn-secondary mt-3" onClick={resetAll}>
-                Back to Generator
-              </button>
+              <div className="d-flex justify-content-center gap-2 mt-3">
+                <button className="btn btn-secondary" onClick={resetAll}>
+                  Back to Generator
+                </button>
+                <button className="btn btn-info" onClick={startFileUpload}>
+                  Switch to File Upload
+                </button>
+              </div>
+            </motion.div>
+          )}
+          
+          {scanMode && !scanResult && fileUploadMode && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-center"
+            >
+              <h4 className="mb-4">Upload QR Code Image</h4>
+              <div className="d-flex flex-column align-items-center mb-4">
+                <div 
+                  id="file-reader" 
+                  className="d-none"
+                ></div>
+                <div className="mb-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    className="form-control"
+                    style={{ maxWidth: '300px' }}
+                  />
+                </div>
+                <p className="text-muted">Select a QR code image from your device</p>
+              </div>
+              <div className="d-flex justify-content-center gap-2 mt-3">
+                <button className="btn btn-secondary" onClick={resetAll}>
+                  Back to Generator
+                </button>
+                <button className="btn btn-primary" onClick={startScanning}>
+                  Switch to Webcam
+                </button>
+              </div>
             </motion.div>
           )}
           
@@ -298,8 +399,8 @@ const QRCodeApp = () => {
                     <div className="col-12 mb-3">
                       <div className="card">
                         <div className="card-body">
-                          <h5 className="card-title">Attendee</h5>
-                          <p className="card-text fs-4 fw-bold">{ticketData.attendeeName}</p>
+                          <h5 className="card-title">First Name</h5>
+                          <p className="card-text fs-4 fw-bold">{ticketData.firstName}</p>
                         </div>
                       </div>
                     </div>
@@ -327,6 +428,13 @@ const QRCodeApp = () => {
                   onClick={() => {
                     setScanResult(null);
                     setTicketData(null);
+                    
+                    if (fileUploadMode) {
+                      // Reset the file input
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = "";
+                      }
+                    }
                   }}
                   className="btn btn-primary"
                 >
