@@ -1,0 +1,355 @@
+import React, { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { motion } from 'framer-motion';
+
+const EventRegistrationForm = () => {
+  const [formData, setFormData] = useState({
+    // Personal Details
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    
+    // Event Details
+    eventName: '',
+    eventDate: '',
+    ticketType: 'standard',
+    
+    // Payment Details
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvc: '',
+    nameOnCard: '',
+  });
+  
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [qrData, setQrData] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+  
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    
+    // Simulate payment processing
+    setTimeout(() => {
+      // Generate a unique ID for the registration
+      const registrationId = 'REG-' + Date.now();
+      
+      // Create data for QR code
+      const regData = {
+        registrationId,
+        ...formData,
+        registrationDate: new Date().toISOString()
+      };
+      
+      // Convert to JSON string and encode for QR
+      const qrString = JSON.stringify(regData);
+      setQrData(qrString);
+      setIsSubmitted(true);
+      setIsProcessing(false);
+    }, 2000);
+  };
+  
+  const resetForm = () => {
+    setIsSubmitted(false);
+    setQrData('');
+    setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      eventName: '',
+      eventDate: '',
+      ticketType: 'standard',
+      cardNumber: '',
+      cardExpiry: '',
+      cardCvc: '',
+      nameOnCard: '',
+    });
+  };
+  
+  return (
+    <div className="container py-5">
+      {!isSubmitted ? (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="card shadow-lg"
+        >
+          <div className="card-header bg-primary text-white">
+            <h2 className="mb-0">Event Registration</h2>
+          </div>
+          <div className="card-body">
+            <form onSubmit={handleSubmit}>
+              {/* Personal Details Section */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="mb-4"
+              >
+                <h4 className="mb-3">Personal Details</h4>
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="firstName" className="form-label">First Name</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="firstName"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="lastName" className="form-label">Last Name</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="lastName"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="email" className="form-label">Email</label>
+                    <input
+                      type="email"
+                      className="form-control"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="phone" className="form-label">Phone Number</label>
+                    <input
+                      type="tel"
+                      className="form-control"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+              </motion.div>
+              
+              {/* Event Details Section */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="mb-4"
+              >
+                <h4 className="mb-3">Event Details</h4>
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="eventName" className="form-label">Event Name</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="eventName"
+                      name="eventName"
+                      value={formData.eventName}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="eventDate" className="form-label">Event Date</label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      id="eventDate"
+                      name="eventDate"
+                      value={formData.eventDate}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="ticketType" className="form-label">Ticket Type</label>
+                  <select
+                    className="form-select"
+                    id="ticketType"
+                    name="ticketType"
+                    value={formData.ticketType}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="standard">Standard Ticket ($50)</option>
+                    <option value="premium">Premium Ticket ($100)</option>
+                    <option value="vip">VIP Ticket ($200)</option>
+                  </select>
+                </div>
+              </motion.div>
+              
+              {/* Payment Details Section */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="mb-4"
+              >
+                <h4 className="mb-3">Payment Details</h4>
+                <div className="mb-3">
+                  <label htmlFor="nameOnCard" className="form-label">Name on Card</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="nameOnCard"
+                    name="nameOnCard"
+                    value={formData.nameOnCard}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="cardNumber" className="form-label">Card Number</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="cardNumber"
+                    name="cardNumber"
+                    value={formData.cardNumber}
+                    onChange={handleChange}
+                    placeholder="XXXX XXXX XXXX XXXX"
+                    required
+                  />
+                </div>
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="cardExpiry" className="form-label">Expiration Date</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="cardExpiry"
+                      name="cardExpiry"
+                      value={formData.cardExpiry}
+                      onChange={handleChange}
+                      placeholder="MM/YY"
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <label htmlFor="cardCvc" className="form-label">CVC</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="cardCvc"
+                      name="cardCvc"
+                      value={formData.cardCvc}
+                      onChange={handleChange}
+                      placeholder="123"
+                      required
+                    />
+                  </div>
+                </div>
+              </motion.div>
+              
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                className="d-grid gap-2"
+              >
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-lg"
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Processing Payment...
+                    </>
+                  ) : (
+                    'Complete Registration'
+                  )}
+                </button>
+              </motion.div>
+            </form>
+          </div>
+        </motion.div>
+      ) : (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="card shadow-lg"
+        >
+          <div className="card-header bg-success text-white">
+            <h2 className="mb-0">Registration Successful!</h2>
+          </div>
+          <div className="card-body text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <h4 className="mb-3">Thank you for registering, {formData.firstName}!</h4>
+              <p>Your ticket for <strong>{formData.eventName}</strong> has been confirmed.</p>
+              <p>A confirmation email has been sent to <strong>{formData.email}</strong>.</p>
+              
+              <div className="my-4">
+                <h5>Your QR Ticket</h5>
+                <p className="text-muted mb-3">Scan this QR code at the event entrance</p>
+                <div className="d-flex justify-content-center">
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.5, type: 'spring', stiffness: 100 }}
+                    className="border p-3 bg-light rounded"
+                  >
+                    <QRCodeSVG
+                      value={qrData}
+                      size={200}
+                      level="H"
+                      includeMargin={true}
+                      bgColor="#FFFFFF"
+                      fgColor="#000000"
+                    />
+                  </motion.div>
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <button
+                  onClick={resetForm}
+                  className="btn btn-outline-primary me-2"
+                >
+                  Register Another Person
+                </button>
+                <a href="/scan-qr" className="btn btn-primary">
+                  Go to QR Scanner
+                </a>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+};
+
+export default EventRegistrationForm;
