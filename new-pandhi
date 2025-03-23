@@ -1,0 +1,514 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
+import { motion } from 'framer-motion';
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+const QRScannerPage = () => {
+  // App state
+  const [scanMode, setScanMode] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [ticketData, setTicketData] = useState(null);
+  const [error, setError] = useState(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState(null);
+  const [fileUploadMode, setFileUploadMode] = useState(false);
+
+  // Form states
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [eventName, setEventName] = useState('');
+  const [ticketType, setTicketType] = useState('standard');
+  const [eventDate, setEventDate] = useState('');
+  const [seatInfo, setSeatInfo] = useState('');
+
+  // Refs
+  const fileInputRef = useRef(null);
+  const html5QrCodeRef = useRef(null);
+
+  // Generate QR code function
+  const generateQRCode = () => {
+    if (!firstName || !eventName) {
+      setError("First name and event name are required");
+      return;
+    }
+
+    // Create the ticket data object
+    const data = {
+      firstName,
+      lastName,
+      eventName,
+      ticketType,
+      eventDate: eventDate || new Date().toISOString().split('T')[0],
+      seatInfo: seatInfo || 'General Admission',
+      ticketId: Math.random().toString(36).substring(2, 10).toUpperCase()
+    };
+
+    // Generate QR code URL using a free QR code API
+    const jsonStr = JSON.stringify(data);
+    const encodedData = encodeURIComponent(jsonStr);
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedData}`;
+    
+    setQrCodeUrl(qrUrl);
+    setScanMode(false);
+    setError(null);
+  };
+
+  // Switch to scanner mode
+  const startScanning = () => {
+    setScanMode(true);
+    setFileUploadMode(false);
+    setQrCodeUrl(null);
+    setScanResult(null);
+    setTicketData(null);
+    setError(null);
+  };
+
+  // Switch to file upload mode
+  const startFileUpload = () => {
+    setScanMode(true);
+    setFileUploadMode(true);
+    setQrCodeUrl(null);
+    setScanResult(null);
+    setTicketData(null);
+    setError(null);
+  };
+
+  // Reset all
+  const resetAll = () => {
+    setScanMode(false);
+    setFileUploadMode(false);
+    setQrCodeUrl(null);
+    setScanResult(null);
+    setTicketData(null);
+    setError(null);
+    
+    // Clear the scanner if it exists
+    if (html5QrCodeRef.current) {
+      html5QrCodeRef.current.clear().catch(error => {
+        console.error("Failed to clear scanner:", error);
+      });
+    }
+  };
+
+  // Process QR code result
+  const processQrCode = (decodedText) => {
+    console.log("QR Code scanned successfully:", decodedText);
+    
+    try {
+      // Parse the JSON data from the QR code
+      const data = JSON.parse(decodedText);
+      
+      // Validate that the required fields exist
+      if (!data.firstName || !data.eventName) {
+        throw new Error("Missing required ticket information");
+      }
+      
+      // Update state with the ticket data
+      setScanResult(decodedText);
+      setTicketData(data);
+      
+      // Clear the scanner if it exists
+      if (html5QrCodeRef.current) {
+        html5QrCodeRef.current.clear().catch(error => {
+          console.error("Failed to clear scanner:", error);
+        });
+      }
+    } catch (err) {
+      console.error("Error parsing QR code data:", err);
+      setError("Invalid QR code format. Please scan a valid ticket QR code.");
+    }
+  };
+
+  // Handle file upload for QR scanning
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    
+    if (!file) {
+      return;
+    }
+    
+    // Create HTML5 QR code instance if not exists
+    if (!html5QrCodeRef.current) {
+      html5QrCodeRef.current = new Html5Qrcode("file-reader");
+    }
+    
+    // Scan the QR code from the file
+    html5QrCodeRef.current.scanFile(file, true)
+      .then(decodedText => {
+        processQrCode(decodedText);
+      })
+      .catch(err => {
+        setError("Error scanning file: " + err);
+      });
+  };
+
+  // Scanner hook for webcam
+  useEffect(() => {
+    if (scanMode && !fileUploadMode && !scanResult) {
+      // Create a new scanner instance with optimized settings for webcam scanning
+      const html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", 
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          rememberLastUsedCamera: true,
+          aspectRatio: 1.0,
+          showTorchButtonIfSupported: true,
+          showZoomSliderIfSupported: true,
+        }
+      );
+      
+      html5QrCodeRef.current = html5QrcodeScanner.getHtml5QrcodeInstance();
+
+      // Define success callback
+      const onScanSuccess = (decodedText) => {
+        processQrCode(decodedText);
+      };
+
+      // Define failure callback
+      const onScanFailure = (error) => {
+        // Don't update state on every scan failure to avoid unnecessary renders
+        console.warn(`QR Code scanning failed: ${error}`);
+      };
+
+      // Render the scanner
+      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+
+      // Cleanup function
+      return () => {
+        html5QrcodeScanner.clear().catch(error => {
+          console.error("Failed to clear scanner:", error);
+        });
+      };
+    }
+  }, [scanMode, fileUploadMode, scanResult]); // Only re-run when these variables change
+
+  return (
+    <div className="container py-5">
+      <h1 className="text-center mb-4">Event Ticket QR System</h1>
+      
+      {error && (
+        <div className="alert alert-danger alert-dismissible fade show" role="alert">
+          {error}
+          <button 
+            type="button" 
+            className="btn-close" 
+            onClick={() => setError(null)}
+            aria-label="Close"
+          ></button>
+        </div>
+      )}
+      
+      <div className="row justify-content-center">
+        <div className="col-md-8">
+          {!scanMode && !qrCodeUrl && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="card shadow"
+            >
+              <div className="card-body">
+                <h4 className="mb-3">Generate Ticket QR Code</h4>
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label htmlFor="firstName" className="form-label">First Name</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      id="firstName"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="Enter first name"
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label htmlFor="lastName" className="form-label">Last Name</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      id="lastName"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Enter last name"
+                    />
+                  </div>
+                  <div className="col-12">
+                    <label htmlFor="eventName" className="form-label">Event Name</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      id="eventName"
+                      value={eventName}
+                      onChange={(e) => setEventName(e.target.value)}
+                      placeholder="Enter event name"
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label htmlFor="eventDate" className="form-label">Event Date</label>
+                    <input 
+                      type="date" 
+                      className="form-control" 
+                      id="eventDate"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label htmlFor="ticketType" className="form-label">Ticket Type</label>
+                    <select 
+                      className="form-select" 
+                      id="ticketType"
+                      value={ticketType}
+                      onChange={(e) => setTicketType(e.target.value)}
+                    >
+                      <option value="standard">Standard</option>
+                      <option value="vip">VIP</option>
+                      <option value="earlybird">Early Bird</option>
+                      <option value="premium">Premium</option>
+                    </select>
+                  </div>
+                  <div className="col-12">
+                    <label htmlFor="seatInfo" className="form-label">Seat Information</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      id="seatInfo"
+                      value={seatInfo}
+                      onChange={(e) => setSeatInfo(e.target.value)}
+                      placeholder="Seat number or 'General Admission'"
+                    />
+                  </div>
+                  <div className="col-12 d-flex justify-content-between mt-4">
+                    <button 
+                      type="button" 
+                      className="btn btn-primary" 
+                      onClick={generateQRCode}
+                    >
+                      Generate QR Code
+                    </button>
+                    <div>
+                      <button 
+                        type="button" 
+                        className="btn btn-secondary me-2" 
+                        onClick={startScanning}
+                      >
+                        Scan with Webcam
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn btn-info" 
+                        onClick={startFileUpload}
+                      >
+                        Upload QR Image
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {qrCodeUrl && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-center card shadow"
+            >
+              <div className="card-body">
+                <h4 className="mb-3">Your Ticket QR Code</h4>
+                <div className="card mx-auto mb-4" style={{ maxWidth: "300px" }}>
+                  <div className="card-body">
+                    <h5 className="card-title">{firstName} {lastName}</h5>
+                    <h6 className="card-subtitle mb-2 text-muted">{eventName}</h6>
+                    <p className="mb-1">Type: <span className="fw-bold">{ticketType}</span></p>
+                    <p className="mb-1">Date: <span className="fw-bold">{eventDate || new Date().toISOString().split('T')[0]}</span></p>
+                    <p className="mb-1">Seat: <span className="fw-bold">{seatInfo || 'General Admission'}</span></p>
+                    <div className="my-3">
+                      <img 
+                        src={qrCodeUrl}
+                        alt="Ticket QR Code"
+                        className="img-fluid border p-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="d-flex justify-content-center gap-2">
+                  <button className="btn btn-secondary" onClick={resetAll}>
+                    Create Another Ticket
+                  </button>
+                  <button className="btn btn-primary" onClick={startScanning}>
+                    Scan with Webcam
+                  </button>
+                  <button className="btn btn-info" onClick={startFileUpload}>
+                    Upload QR Image
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {scanMode && !scanResult && !fileUploadMode && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-center card shadow"
+            >
+              <div className="card-body">
+                <h4 className="mb-4">Scan Ticket QR Code</h4>
+                <div className="d-flex justify-content-center">
+                  <div 
+                    id="reader" 
+                    style={{ width: "100%", maxWidth: "500px" }}
+                  ></div>
+                </div>
+                <p className="text-muted">Please allow camera access when prompted</p>
+                <div className="d-flex justify-content-center gap-2 mt-3">
+                  <button className="btn btn-secondary" onClick={resetAll}>
+                    Back to Generator
+                  </button>
+                  <button className="btn btn-info" onClick={startFileUpload}>
+                    Switch to File Upload
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+          
+          {scanMode && !scanResult && fileUploadMode && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-center card shadow"
+            >
+              <div className="card-body">
+                <h4 className="mb-4">Upload QR Code Image</h4>
+                <div className="d-flex flex-column align-items-center mb-4">
+                  <div 
+                    id="file-reader" 
+                    className="d-none"
+                  ></div>
+                  <div className="mb-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      className="form-control"
+                      style={{ maxWidth: '300px' }}
+                    />
+                  </div>
+                  <p className="text-muted">Select a QR code image from your device</p>
+                </div>
+                <div className="d-flex justify-content-center gap-2 mt-3">
+                  <button className="btn btn-secondary" onClick={resetAll}>
+                    Back to Generator
+                  </button>
+                  <button className="btn btn-primary" onClick={startScanning}>
+                    Switch to Webcam
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {scanResult && ticketData && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="card shadow"
+            >
+              <div className="card-body">
+                <div className="text-center mb-4">
+                  <div className="bg-success text-white p-3 rounded-circle d-inline-block mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" className="bi bi-check-lg" viewBox="0 0 16 16">
+                      <path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425a.247.247 0 0 1 .02-.022Z"/>
+                    </svg>
+                  </div>
+                  <h4>Ticket Scanned Successfully</h4>
+                </div>
+
+                <div className="container">
+                  <div className="row">
+                    <div className="col-12 mb-3">
+                      <div className="card bg-light">
+                        <div className="card-body">
+                          <h5 className="card-title text-muted">Ticket Details</h5>
+                          <div className="row mt-3">
+                            <div className="col-md-6 mb-3">
+                              <h6>Name</h6>
+                              <p className="fs-5 fw-bold">
+                                {ticketData.firstName} {ticketData.lastName || ''}
+                              </p>
+                            </div>
+                            <div className="col-md-6 mb-3">
+                              <h6>Event</h6>
+                              <p className="fs-5 fw-bold">{ticketData.eventName}</p>
+                            </div>
+                            <div className="col-md-6 mb-3">
+                              <h6>Ticket Type</h6>
+                              <p className="fs-5 fw-bold text-capitalize">{ticketData.ticketType}</p>
+                            </div>
+                            <div className="col-md-6 mb-3">
+                              <h6>Date</h6>
+                              <p className="fs-5 fw-bold">{ticketData.eventDate}</p>
+                            </div>
+                            {ticketData.seatInfo && (
+                              <div className="col-md-6 mb-3">
+                                <h6>Seat Information</h6>
+                                <p className="fs-5 fw-bold">{ticketData.seatInfo}</p>
+                              </div>
+                            )}
+                            {ticketData.ticketId && (
+                              <div className="col-md-6 mb-3">
+                                <h6>Ticket ID</h6>
+                                <p className="fs-5 fw-bold">{ticketData.ticketId}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="d-flex justify-content-center gap-2 mt-3">
+                  <button 
+                    onClick={() => {
+                      setScanResult(null);
+                      setTicketData(null);
+                      
+                      if (fileUploadMode) {
+                        // Reset the file input
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = "";
+                        }
+                      }
+                    }}
+                    className="btn btn-primary"
+                  >
+                    Scan Another Ticket
+                  </button>
+                  <button 
+                    onClick={resetAll}
+                    className="btn btn-secondary"
+                  >
+                    Back to Generator
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default QRScannerPage;
