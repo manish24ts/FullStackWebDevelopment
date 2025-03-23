@@ -25,6 +25,7 @@ const QRScannerPage = () => {
   const fileInputRef = useRef(null);
   const html5QrCodeRef = useRef(null);
   const scannerRef = useRef(null);
+  const scannerInitializedRef = useRef(false);
 
   // Generate QR code function
   const generateQRCode = () => {
@@ -54,6 +55,36 @@ const QRScannerPage = () => {
     setError(null);
   };
 
+  // Function to safely clean up scanner
+  const cleanupScanner = () => {
+    try {
+      // Only try to clean up if we've initialized it
+      if (scannerInitializedRef.current && scannerRef.current) {
+        scannerRef.current.clear();
+        scannerRef.current = null;
+        scannerInitializedRef.current = false;
+      }
+      
+      if (html5QrCodeRef.current) {
+        html5QrCodeRef.current.stop().catch(err => {
+          console.error("Error stopping html5QrCode:", err);
+        }).finally(() => {
+          html5QrCodeRef.current = null;
+        });
+      }
+      
+      // Also clear the DOM element to prevent issues
+      const readerElement = document.getElementById('reader');
+      if (readerElement) {
+        while (readerElement.firstChild) {
+          readerElement.removeChild(readerElement.firstChild);
+        }
+      }
+    } catch (error) {
+      console.error("Error cleaning up scanner:", error);
+    }
+  };
+
   // Switch to scanner mode
   const startScanning = () => {
     // First clean up any existing scanner
@@ -78,31 +109,6 @@ const QRScannerPage = () => {
     setScanResult(null);
     setTicketData(null);
     setError(null);
-  };
-
-  // Function to safely clean up scanner
-  const cleanupScanner = () => {
-    try {
-      if (scannerRef.current) {
-        scannerRef.current.clear();
-        scannerRef.current = null;
-      }
-      
-      if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.clear();
-        html5QrCodeRef.current = null;
-      }
-      
-      // Also clear the DOM element to prevent issues
-      const readerElement = document.getElementById('reader');
-      if (readerElement) {
-        while (readerElement.firstChild) {
-          readerElement.removeChild(readerElement.firstChild);
-        }
-      }
-    } catch (error) {
-      console.error("Error cleaning up scanner:", error);
-    }
   };
 
   // Reset all states and return to the form view
@@ -157,13 +163,12 @@ const QRScannerPage = () => {
       return;
     }
     
-    // Create HTML5 QR code instance if not exists
-    if (!html5QrCodeRef.current) {
-      html5QrCodeRef.current = new Html5Qrcode("file-reader");
-    }
+    // Create a new HTML5 QR code instance for file scanning
+    const html5QrCode = new Html5Qrcode("file-reader");
+    html5QrCodeRef.current = html5QrCode;
     
     // Scan the QR code from the file
-    html5QrCodeRef.current.scanFile(file, true)
+    html5QrCode.scanFile(file, true)
       .then(decodedText => {
         processQrCode(decodedText);
       })
@@ -175,46 +180,61 @@ const QRScannerPage = () => {
   // Scanner hook for webcam
   useEffect(() => {
     if (scanMode && !fileUploadMode && !scanResult) {
-      // First ensure we've cleaned up any existing scanner
+      // Clean up first
       cleanupScanner();
       
-      // Create a new scanner instance with optimized settings for webcam scanning
-      const html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader", 
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          rememberLastUsedCamera: true,
-          aspectRatio: 1.0,
-          showTorchButtonIfSupported: true,
-          showZoomSliderIfSupported: true,
-        }
-      );
+      // Create a new scanner container if it doesn't exist
+      const readerElement = document.getElementById('reader');
+      if (!readerElement) {
+        console.error("Scanner container not found");
+        return;
+      }
       
-      // Store scanner references
-      html5QrCodeRef.current = html5QrcodeScanner.getHtml5QrcodeInstance();
-      scannerRef.current = html5QrcodeScanner;
+      // Create a new scanner instance
+      try {
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+          "reader", 
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            rememberLastUsedCamera: true,
+            aspectRatio: 1.0,
+            showTorchButtonIfSupported: true,
+            showZoomSliderIfSupported: true,
+          },
+          /* verbose= */ false
+        );
+        
+        // Store scanner references
+        scannerRef.current = html5QrcodeScanner;
 
-      // Define success callback
-      const onScanSuccess = (decodedText) => {
-        processQrCode(decodedText);
-      };
+        // Define success callback
+        const onScanSuccess = (decodedText) => {
+          processQrCode(decodedText);
+        };
 
-      // Define failure callback
-      const onScanFailure = (error) => {
-        // Don't update state on every scan failure to avoid unnecessary renders
-        console.warn(`QR Code scanning failed: ${error}`);
-      };
+        // Define failure callback
+        const onScanFailure = (error) => {
+          // Don't update state on every scan failure to avoid unnecessary renders
+          console.warn(`QR Code scanning failed: ${error}`);
+        };
 
-      // Render the scanner
-      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-
-      // Cleanup function for when component unmounts or dependencies change
-      return () => {
-        cleanupScanner();
-      };
+        // Render the scanner
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        scannerInitializedRef.current = true;
+      } catch (error) {
+        console.error("Error initializing scanner:", error);
+        setError("Failed to initialize camera scanner. Please try again or use file upload instead.");
+      }
     }
-  }, [scanMode, fileUploadMode, scanResult]); // Only re-run when these variables change
+    
+    // Cleanup function
+    return () => {
+      if (scanMode && !fileUploadMode && !scanResult) {
+        cleanupScanner();
+      }
+    };
+  }, [scanMode, fileUploadMode, scanResult]);
 
   // Cleanup on component unmount
   useEffect(() => {
