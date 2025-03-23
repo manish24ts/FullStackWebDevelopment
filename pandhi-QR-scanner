@@ -1,0 +1,214 @@
+import React, { useState, useEffect } from 'react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { motion } from 'framer-motion';
+
+const QRScannerPage = () => {
+  const [scanResult, setScanResult] = useState(null);
+  const [registrationData, setRegistrationData] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Only initialize the scanner if we don't have scan results yet
+    if (!scanResult) {
+      // Create a new scanner instance
+      const html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", 
+        { 
+          fps: 10,
+          qrbox: 250,
+          aspectRatio: 1.0,
+          disableFlip: false,
+          formatsToSupport: [0], // 0 stands for QR_CODE
+          showTorchButtonIfSupported: true,
+          showZoomSliderIfSupported: true,
+        }
+      );
+
+      // Define success callback
+      const onScanSuccess = (decodedText) => {
+        console.log("QR Code scanned successfully:", decodedText);
+        
+        try {
+          // Parse the JSON data from the QR code
+          const data = JSON.parse(decodedText);
+          
+          // Update state with scan results
+          setScanResult(decodedText);
+          setRegistrationData(data);
+          
+          // Stop the scanner after successful scan
+          html5QrcodeScanner.clear();
+        } catch (err) {
+          console.error("Error parsing QR code data:", err);
+          setError("Invalid QR code format. Please scan a valid ticket QR code.");
+        }
+      };
+
+      // Define failure callback
+      const onScanFailure = (error) => {
+        // We don't need to show every failure to the user
+        console.log("QR scan error:", error);
+      };
+
+      // Render the scanner
+      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+      
+      // Clean up function
+      return () => {
+        // Clear the scanner when component unmounts or when we have results
+        html5QrcodeScanner.clear().catch(error => {
+          console.error("Failed to clear scanner:", error);
+        });
+      };
+    }
+  }, [scanResult]); // Only re-run when scanResult changes
+
+  // Reset the scanner and state
+  const resetScanner = () => {
+    setScanResult(null);
+    setRegistrationData(null);
+    setError(null);
+  };
+
+  // Format ticket type for display
+  const formatTicketType = (ticketType) => {
+    if (!ticketType) return 'N/A';
+    return ticketType.charAt(0).toUpperCase() + ticketType.slice(1);
+  };
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric'
+      });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  // Determine payment status
+  const getPaymentStatus = (data) => {
+    return data && data.cardNumber && data.cardExpiry && data.cardCvc ? 'Paid' : 'Pending';
+  };
+
+  return (
+    <div className="container py-5">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="card shadow-lg"
+      >
+        <div className="card-header bg-primary text-white">
+          <h2 className="mb-0">Event Check-In</h2>
+        </div>
+        <div className="card-body">
+          {error && (
+            <div className="alert alert-danger" role="alert">
+              {error}
+              <button 
+                className="btn-close float-end" 
+                onClick={() => setError(null)}
+                aria-label="Close"
+              ></button>
+            </div>
+          )}
+          
+          {!scanResult && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="text-center"
+            >
+              <p className="mb-4">Scan attendee QR code</p>
+              <div className="d-flex justify-content-center mb-4">
+                <div
+                  id="reader"
+                  style={{ 
+                    width: '100%', 
+                    maxWidth: '500px',
+                    borderRadius: '10px',
+                    overflow: 'hidden'
+                  }}
+                ></div>
+              </div>
+              <p className="text-muted">Please allow camera access when prompted</p>
+            </motion.div>
+          )}
+          
+          {registrationData && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="text-center mb-4">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                  className="d-inline-flex justify-content-center align-items-center bg-success text-white rounded-circle p-3 mb-3"
+                  style={{ width: '80px', height: '80px' }}
+                >
+                  <i className="bi bi-check-lg" style={{ fontSize: '2.5rem' }}></i>
+                </motion.div>
+                <h3 className="text-success">Ticket Verified!</h3>
+              </div>
+              
+              <div className="card mb-4 border-success">
+                <div className="card-header bg-success text-white">
+                  <h4 className="mb-0">Ticket Information</h4>
+                </div>
+                <div className="card-body">
+                  <div className="row text-center">
+                    <div className="col-12 mb-4">
+                      <h2>{registrationData.eventName}</h2>
+                      <p className="lead">{formatDate(registrationData.eventDate)}</p>
+                    </div>
+                    
+                    <div className="col-6">
+                      <div className="card h-100">
+                        <div className="card-body">
+                          <h5 className="card-title">Ticket Type</h5>
+                          <p className="card-text fs-4 fw-bold">{formatTicketType(registrationData.ticketType)}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="col-6">
+                      <div className="card h-100">
+                        <div className="card-body">
+                          <h5 className="card-title">Payment Status</h5>
+                          <p className={`card-text fs-4 fw-bold ${getPaymentStatus(registrationData) === 'Paid' ? 'text-success' : 'text-warning'}`}>
+                            {getPaymentStatus(registrationData)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="d-flex justify-content-center mt-4">
+                <button
+                  onClick={resetScanner}
+                  className="btn btn-primary btn-lg"
+                >
+                  Scan Next Ticket
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+export default QRScannerPage;
